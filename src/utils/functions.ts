@@ -30,3 +30,21 @@ export async function sendGuildMessage(guild: Guild, message: ArgumentTypes<Text
 		owner()
 	}
 }
+
+/**
+ * Split a long array into multiple, smaller arrays with a set maximum length
+ * @param data - The data to split
+ * @param [chunkSize=250] - the size of chunks to split the data into. Defaults to 250
+ */
+export const arrayToChunks = <T>(data: Iterable<T> | ArrayLike<T>, chunkSize = 250): T[][] => {
+	const array = Array.from(data)
+	const chunks = array.reduce<T[][]>((acc, record) => {
+		const last = acc[acc.length - 1]
+		if (!last || last.length >= chunkSize) {
+			acc.push([])
+		}
+		acc[acc.length - 1].push(record)
+		return acc
+	}, [])
+	return chunks
+}
