@@ -1,33 +1,54 @@
 import { Guild, TextChannel } from "discord.js"
 
-export type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
+/**
+ * Attempt to contact a guild by sending them a message
+ * @param guild Guild to attempt to send a message to
+ * @param message Message to send
+ */
+export async function sendGuildMessage(guild: Guild, message: Parameters<TextChannel["send"]>[0]): Promise<boolean> {
+	const owner = async() => {
+		// try sending to owner. if it fails, return false
+		try {
+			const owner = await guild.fetchOwner()
+			owner.send(message)
+			return true
+		} catch {
+			return false
+		}
+	}
+	
+	const systemChannel = async () => {
+		// try to send to system channel if it exists. if it doesnt or fails, send to owner
+		try {
+			if (guild.systemChannel) {
+				guild.systemChannel.send(message)
+				return true
+			}
+			return owner()
+		} catch {
+			return owner()
+		}
+	}
+	
+	const publicUpdatesChannel = async () => {
+		// try to send to public updates channel if it exists. if it doesnt or fails, send to system channel
+		try {
+			if (guild.publicUpdatesChannel) {
+				await guild.publicUpdatesChannel.send(message)
+				return true
+			}
+			return systemChannel()
+		} catch {
+			return systemChannel()
+		}
+	}
 
-export async function sendGuildMessage(guild: Guild, message: ArgumentTypes<TextChannel["send"]>[0]) {
-	const owner = () => {
-		guild.fetchOwner()
-			.then((owner) => owner.send(message))
-			.catch(() => {
-				console.log(`Could not send message to guild ${guild.name} (${guild.id})`)
-			})
-	}
-	
-	const systemChannel = () => {
-		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-		guild.systemChannel!.send(message)
-			.catch(() => owner())
-	}
-	
-	const publicUpdatesChannel = () => {
-		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-		guild.publicUpdatesChannel!.send(message)
-			.catch(() => systemChannel())
-	}
 	if (guild.publicUpdatesChannel) {
-		publicUpdatesChannel()
+		return publicUpdatesChannel()
 	} else if (guild.systemChannel) {
-		systemChannel()
+		return systemChannel()
 	} else {
-		owner()
+		return owner()
 	}
 }
 

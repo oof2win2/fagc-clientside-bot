@@ -24,20 +24,31 @@ interface BotOptions extends ClientOptions {
 
 }
 export default class FAGCBot extends Client {
+	/**
+	 * @property FAGC API wrapper
+	 */
 	fagc: FAGCWrapper
 	db: PrismaClient
 	commands: Collection<string, Command>
 	/**
-	 * Info channels, grouped by guild ID
+	 * @property Info channels, grouped by guild ID
 	 */
 	infochannels: Collection<string, InfoChannel[]>
 	/**
-	 * Guild configs, by guild ID
+	 * @property Guild configs, by guild ID
 	 */
 	guildConfigs: Collection<string, GuildConfig>
-	community?: Community
+	/**
+	 * @property Bot configs, which are stored locally. This is used to store settings for each guild
+	 */
 	botConfigs: Collection<string, database.BotConfigType>
-	embedQueue: Collection<string, MessageEmbed[]>
+	/**
+	 * @property Queue of notification embeds to send to info channels. Grouped by guild
+	 */
+	private embedQueue: Collection<string, MessageEmbed[]>
+	/**
+	 * @property List of Factorio servers that this bot is connected to. Grouped by guild
+	 */
 	servers: Collection<string, database.FactorioServerType[]>
 	readonly rcon: RCONInterface
 
@@ -105,10 +116,18 @@ export default class FAGCBot extends Client {
 		setInterval(() => this.sendEmbeds(), 10*1000) // send embeds every 10 seconds
 	}
 
+	/**
+	 * Get all bot configs from the database
+	 * @returns A list of all bot configs
+	 */
 	async getBotConfigs(): Promise<database.BotConfigType[]> {
 		const records = await this.db.botConfig.findMany()
 		return z.array(database.BotConfig).parse(records)
 	}
+
+	/**
+	 * Get a bot config for a guild
+	 */
 	async getBotConfig(guildID: string): Promise<database.BotConfigType> {
 		const existing = this.botConfigs.get(guildID)
 		if (existing) return existing
@@ -121,6 +140,10 @@ export default class FAGCBot extends Client {
 		if (!record) await this.setBotConfig(created)
 		return created
 	}
+
+	/**
+	 * Set a bot config for a guild
+	 */
 	async setBotConfig(config: Partial<database.BotConfigType> & Pick<database.BotConfigType, "guildID">) {
 		const existingConfig = await this.getBotConfig(config.guildID)
 		const toSetConfig = database.BotConfig.parse({
@@ -140,6 +163,9 @@ export default class FAGCBot extends Client {
 		this.botConfigs.set(config.guildID, database.BotConfig.parse(newConfig))
 	}
 
+	/**
+	 * Send embeds to info channels from the embed queue
+	 */
 	private sendEmbeds() {
 		for (const [ channelID ] of this.embedQueue) {
 			const embeds = this.embedQueue.get(channelID)?.splice(0, 10) ?? []
@@ -152,6 +178,9 @@ export default class FAGCBot extends Client {
 		}
 	}
 
+	/**
+	 * Add an embed to the embed queue, so it can be sent later
+	 */
 	addEmbedToQueue(channelID: string, embed: MessageEmbed) {
 		const channel = this.channels.resolve(channelID)
 		if (!channel || !channel.isNotDMChannel()) return false
@@ -163,15 +192,30 @@ export default class FAGCBot extends Client {
 		}
 	}
 
+	/**
+	 * Get the FAGC guild config for a guild
+	 */
 	async getGuildConfig(guildID: string): Promise<GuildConfig | null> {
 		const existing = this.guildConfigs.get(guildID)
 		if (existing) return existing
+		// the following should occur only if the guild does not have a config
 		const config = await this.fagc.communities.fetchGuildConfig({ guildId: guildID })
 		if (!config) return null
 		this.guildConfigs.set(guildID, config)
 		return config
 	}
 
+	/**
+	 * Create a command to ban a player with, with data from the report
+	 * @param report The report to get information from
+	 * @param guildID The guild where the report is being created
+	 * @returns A command to ban with, or false if the guild does not perform any action
+	 * ```ts
+	 * const command = client.createBanCommand(report, guildID)
+	 * // game.ban_player("Windsinger", "You have been banned for FAGC report 0KQvlLX created on 2021-01-01T21:00:00.000Z")
+	 * await client.rcon.rconCommandGuild(`/sc ${command}; rcon.print(true)`, guildID)
+	 * ```
+	 */
 	createBanCommand(report: Report, guildID: string) {
 		const botConfig = this.botConfigs.get(guildID)
 		if (!botConfig || botConfig.reportAction === "none") return false
@@ -190,6 +234,17 @@ export default class FAGCBot extends Client {
 		return command
 	}
 
+	/**
+	 * Create a command to unban a player with
+	 * @param playername Name of player to unban
+	 * @param guildID The guild where the player is being unbanned
+	 * @returns A command to ban with, or false if the guild does not perform any action
+	 * ```ts
+	 * const command = client.createUnbanCommand("Windsinger", guildID)
+	 * // game.unban_player("Windsinger")
+	 * await client.rcon.rconCommandGuild(`/sc ${command}; rcon.print(true)`, guildID)
+	 * ```
+	 */
 	createUnbanCommand(playername: string, guildID: string) {
 		const botConfig = this.botConfigs.get(guildID)
 		if (!botConfig || botConfig.revocationAction === "none") return false

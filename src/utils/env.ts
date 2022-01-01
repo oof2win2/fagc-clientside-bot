@@ -15,7 +15,7 @@ const ENV = cleanEnv(
 		GUILDID: str({ desc: "Guild ID, where to deploy commands when NODE_ENV is production" }),
 		OWNERID: str({ desc: "Bot owner ID" }),
 		RCONPASSWORD: str({ desc: "RCON password for all servers", default: "" }),
-		// TODO: put in the reason properly when this is resolved https://forums.factorio.com/viewtopic.php?f=7&t=101053
+		// TODO: remove extra playername when this is pushed to new version https://forums.factorio.com/viewtopic.php?f=7&t=101053
 		BANCOMMAND: str({ desc: "Command to ban with", default: "game.ban_player(\"{PLAYERNAME}\", \"{PLAYERNAME} You have been banned for FAGC report {REPORTID} created on {REPORTEDTIME}\")" }),
 		CUSTOMBANCOMMAND: str({ desc: "Custom command to send over RCON", default: "game.ban_player(\"{PLAYERNAME}\", \"{PLAYERNAME} You have been banned for FAGC report {REPORTID} created on {REPORTEDTIME}\")" }),
 		UNBANCOMMAND: str({ desc: "Command to unban with", default: "game.unban_player(\"{PLAYERNAME}\")" }),
