@@ -14,6 +14,7 @@ model BotConfig {
   lastNotificationProcessed DateTime @default(now())
   reportAction              String   @default("none")
   revocationAction          String   @default("none")
+  guildConfigFiltersHash    String
 }
 
 model InfoChannel {

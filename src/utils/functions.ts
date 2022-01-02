@@ -1,4 +1,6 @@
 import { Guild, TextChannel } from "discord.js"
+import { GuildConfig } from "fagc-api-types"
+import crypto from "node:crypto"
 
 /**
  * Attempt to contact a guild by sending them a message
@@ -68,4 +70,14 @@ export const arrayToChunks = <T>(data: Iterable<T> | ArrayLike<T>, chunkSize = 2
 		return acc
 	}, [])
 	return chunks
+}
+
+/**
+ * Create a hash of ruleFilters and trustedCommunities to be used to find whether a guild config has changed
+ */
+export const hashGuildConfigFilters = (config: GuildConfig): string => {
+	const hash = crypto.createHash("sha256")
+	;[ ...config.ruleFilters ].sort().forEach((ruleFilter) => hash.update(ruleFilter))
+	;[ ...config.trustedCommunities ].sort().forEach((trustedCommunity) => hash.update(trustedCommunity))
+	return hash.digest("hex")
 }

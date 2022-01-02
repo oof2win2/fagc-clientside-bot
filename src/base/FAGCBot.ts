@@ -1,5 +1,5 @@
 import { FAGCWrapper } from "fagc-api-wrapper"
-import { GuildConfig, Community } from "fagc-api-types"
+import { GuildConfig } from "fagc-api-types"
 import ENV from "../utils/env.js"
 import { Client, ClientOptions, Collection, MessageEmbed } from "discord.js"
 import { Command } from "./Commands.js"
@@ -8,7 +8,7 @@ import * as database from "./database.js"
 import * as wshandler from "./wshandler.js"
 import { Report, Revocation } from "fagc-api-types"
 import RCONInterface from "./rcon.js"
-import fs from "fs"
+import fs from "node:fs"
 import { z } from "zod"
 import { Required } from "utility-types"
 import { ApplicationCommandPermissionTypes } from "discord.js/typings/enums"
@@ -160,7 +160,9 @@ export default class FAGCBot extends Client {
 				...toSetConfig,
 			}
 		})
-		this.botConfigs.set(config.guildID, database.BotConfig.parse(newConfig))
+		const parsedConfig = database.BotConfig.parse(newConfig)
+		this.botConfigs.set(config.guildID, parsedConfig)
+		return parsedConfig
 	}
 
 	/**

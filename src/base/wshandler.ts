@@ -1,8 +1,8 @@
 import { WebSocketEvents } from "fagc-api-wrapper/dist/WebsocketListener"
-import FAGCBot from "./FAGCBot"
+import FAGCBot from "./FAGCBot.js"
 import { MessageEmbed } from "discord.js"
 import { GuildConfig, Report, Revocation } from "fagc-api-types"
-import { arrayToChunks } from "../utils/functions"
+import { arrayToChunks, hashGuildConfigFilters } from "../utils/functions.js"
 
 interface HandlerOpts<T extends keyof WebSocketEvents> {
 	event: Parameters<WebSocketEvents[T]>[0]
@@ -197,10 +197,16 @@ const revocationHandler = async (client: FAGCBot, guildConfigs: GuildConfig[], r
 }
 
 export const guildConfigChanged = async ({ client, event }: HandlerOpts<"guildConfigChanged">) => {
+	// TODO: handle the command perms changing if the roles change
 	client.guildConfigs.set(event.config.guildId, event.config) // set the new config
+	const currentBotConfig = await client.getBotConfig(event.config.guildId)
+	const newBotConfig = await client.setBotConfig({
+		...currentBotConfig,
+		guildConfigFiltersHash: hashGuildConfigFilters(event.config),
+	})
 
 	// unban everyone if no filtered rules on the new config
-	if (!event.config.ruleFilters?.length) {
+	if (!event.config.ruleFilters.length) {
 		const currentReports = await client.db.fagcBan.findMany()
 		const playernames: Set<string> = new Set()
 		currentReports.map((record) => playernames.add(record.playername))

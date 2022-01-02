@@ -10,6 +10,7 @@ export const BotConfig = z.object({
 	lastNotificationProcessed: z.date().default(new Date()),
 	reportAction: z.enum([ "ban", "custom", "none" ]).default("none"),
 	revocationAction: z.enum([ "unban", "custom", "none" ]).default("none"),
+	guildConfigFiltersHash: z.string().optional().default(""),
 })
 export type BotConfigType = z.infer<typeof BotConfig>
 

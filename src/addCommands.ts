@@ -15,9 +15,8 @@ import { GuildConfig } from "fagc-api-types"
 import { ApplicationCommandPermissionTypes } from "discord.js/typings/enums"
 
 const commandCategories = (await fs.readdir("./commands")).filter(command => command.endsWith(".js"))
-const toPushCommmands = await Promise.all(commandCategories.map(async (commandFile) => {
-	const command: Command = await import(`./commands/${commandFile}`).then(r => r.default)
-	return command
+const toPushCommands = await Promise.all(commandCategories.map(async (commandFile) => {
+	return import(`./commands/${commandFile}`).then(r => r.default as Command)
 }))
 
 const prisma = new PrismaClient({
@@ -56,7 +55,7 @@ try {
 		console.log(`Replacing commands in guild ${guildID}`)
 		const newCommands = await rest.put(
 			Routes.applicationGuildCommands(self.id, guildID),
-			{ body: toPushCommmands.map(c => c.data.toJSON()) }
+			{ body: toPushCommands.map(c => c.data.toJSON()) }
 		) as APIApplicationCommand[]
 		commands.set(guildID, newCommands)
 	}
@@ -95,7 +94,7 @@ try {
 		type CommandWithPerms = Required<Command, "permissionOverrides" | "permissionType">
 
 		const commandData: CommandWithPerms[] = guildCommands
-			.map(command => toPushCommmands.find(c => c.data.name === command.name))
+			.map(command => toPushCommands.find(c => c.data.name === command.name))
 			.filter((c): c is CommandWithPerms => Boolean(c?.permissionType) || Boolean(c?.permissionOverrides?.length))
 			.map(c=> {
 				if (!c.permissionOverrides) c.permissionOverrides = []
