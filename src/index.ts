@@ -27,21 +27,7 @@ commands.forEach(async (name) => {
 
 client.login(ENV.DISCORD_BOTTOKEN)
 
-const checkBans = setTimeout(async() => {
-	// clear banlist from server's memory and also file
-	await client.rcon.rconCommandAll("/banlist clear")
-})
-
-const purgeBans = setInterval(() => {
-	console.log("Purging banlist")
-	// clear banlist from server's memory and also file
-	client.rcon.rconCommandAll("/banlist clear")
-}, 7 * 86400 * 1000)
-// 7 * 86400 * 1000 is a week in ms
-
 process.on("exit", () => {
 	client.destroy()
 	client.fagc.destroy()
-	clearTimeout(checkBans)
-	clearInterval(purgeBans)
 })
